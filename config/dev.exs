@@ -2,8 +2,8 @@ import Config
 
 # Configure your database
 config :budgie, Budgie.Repo,
-  username: "taciozturk",
-  password: "",
+  username: "postgres",
+  password: "postgres",
   hostname: "localhost",
   database: "budgie_dev",
   stacktrace: true,
