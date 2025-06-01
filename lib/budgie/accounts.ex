@@ -77,6 +77,7 @@ defmodule Budgie.Accounts do
   def register_user(attrs) do
     %User{}
     |> User.email_changeset(attrs)
+    |> User.name_changeset(attrs)
     |> Repo.insert()
   end
 
@@ -173,6 +174,16 @@ defmodule Budgie.Accounts do
       {:ok, user, expired_tokens} -> {:ok, user, expired_tokens}
       {:error, :user, changeset, _} -> {:error, changeset}
     end
+  end
+
+  def change_user_name(user, attrs \\ %{}, opts \\ []) do
+    User.name_changeset(user, attrs, opts)
+  end
+
+  def update_user_name(user, params) do
+    user
+    |> change_user_name(params)
+    |> Repo.update()
   end
 
   ## Session

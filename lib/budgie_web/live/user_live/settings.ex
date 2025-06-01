@@ -13,6 +13,13 @@ defmodule BudgieWeb.UserLive.Settings do
         <:subtitle>Manage your account email address and password settings</:subtitle>
       </.header>
 
+      <.form for={@name_form} id="name_form" phx-submit="update_name" phx-change="validate_name">
+        <.input field={@name_form[:name]} type="text" label="Name" />
+        <.button variant="primary" phx-disable-with="Changing...">Change Name</.button>
+      </.form>
+
+      <div class="divider" />
+
       <.form for={@email_form} id="email_form" phx-submit="update_email" phx-change="validate_email">
         <.input
           field={@email_form[:email]}
@@ -78,11 +85,13 @@ defmodule BudgieWeb.UserLive.Settings do
 
   def mount(_params, _session, socket) do
     user = socket.assigns.current_scope.user
+    name_changeset = Accounts.change_user_name(user, %{}, validate_email: false)
     email_changeset = Accounts.change_user_email(user, %{}, validate_email: false)
     password_changeset = Accounts.change_user_password(user, %{}, hash_password: false)
 
     socket =
       socket
+      |> assign(:name_form, to_form(name_changeset))
       |> assign(:current_email, user.email)
       |> assign(:email_form, to_form(email_changeset))
       |> assign(:password_form, to_form(password_changeset))
@@ -148,5 +157,45 @@ defmodule BudgieWeb.UserLive.Settings do
       changeset ->
         {:noreply, assign(socket, password_form: to_form(changeset, action: :insert))}
     end
+  end
+
+  def handle_event("validate_name", params, socket) do
+    %{"user" => user_params} = params
+
+    name_form =
+      socket.assigns.current_scope.user
+      |> Accounts.change_user_name(user_params, validate_name: false)
+      |> Map.put(:action, :validate)
+      |> to_form()
+
+    {:noreply, assign(socket, name_form: name_form)}
+  end
+
+  def handle_event("update_name", params, socket) do
+    %{"user" => user_params} = params
+    user = socket.assigns.current_scope.user
+
+    unless Accounts.sudo_mode?(user) do
+      {:noreply, put_flash(socket, :error, "You are not authorized for this action.")}
+    end
+
+    case Accounts.update_user_name(user, user_params) do
+      {:ok, updated_user} ->
+        info = "User name has been updated."
+        new_name_form = Accounts.change_user_name(updated_user)
+
+        {:noreply,
+         socket
+         |> put_flash(:info, info)
+         |> assign(:name_form, to_form(new_name_form))
+         |> assign_current_scope(updated_user)}
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:noreply, assign(socket, :name_form, to_form(changeset))}
+    end
+  end
+
+  defp assign_current_scope(socket, user) do
+    assign(socket, :current_scope, %{socket.assigns.current_scope | user: user})
   end
 end
