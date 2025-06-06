@@ -355,6 +355,48 @@ defmodule BudgieWeb.CoreComponents do
   end
 
   @doc """
+  Renders a modal dialog.
+  """
+  attr :id, :string, required: true
+  attr :show, :boolean, default: false
+  attr :on_cancel, :any, default: nil
+  attr :rest, :global
+
+  slot :inner_block, required: true
+
+  def modal(assigns) do
+    ~H"""
+    <div
+      id={@id}
+      phx-mounted={if @show, do: JS.show(transition: "fade-in"), else: JS.hide()}
+      phx-remove={JS.hide(transition: "fade-out")}
+      class="relative z-50"
+      {@rest}
+    >
+      <div
+        id={"#{@id}-backdrop"}
+        class="fixed inset-0 bg-zinc-800/50 backdrop-blur-sm"
+        phx-click={@on_cancel}
+        phx-mounted={if @show, do: JS.show(transition: "fade-in"), else: JS.hide()}
+        phx-remove={JS.hide(transition: "fade-out")}
+      />
+      <div class="fixed inset-0 overflow-y-auto">
+        <div class="flex min-h-full items-center justify-center p-4">
+          <div
+            id={"#{@id}-container"}
+            class="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all"
+            phx-mounted={if @show, do: JS.show(transition: "fade-in"), else: JS.hide()}
+            phx-remove={JS.hide(transition: "fade-out")}
+          >
+            {render_slot(@inner_block)}
+          </div>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  @doc """
   Renders a data list.
 
   ## Examples
